@@ -37,31 +37,71 @@ public function search(Request $request)
     return response_data($clients, __('messages.get_clients'));
 }
 
-
-  public function index()
+public function index(string $category)
 {
     $userId = auth()->id();
+    $cat = strtolower($category);
 
-   $clients = Client::where('user_id', $userId)
-    ->withSum('debts as total_debt', 'amount')
-    ->withSum('payments as total_paid', 'amount')
-    ->withMax('debts as last_debt_date', 'debt_date')
-    ->withMax('payments as last_payment_date', 'payment_date')
-    ->get()
-    ->map(function ($c) {
-        $c->total_debt = (float) ($c->total_debt ?? 0);
-        $c->total_paid = (float) ($c->total_paid ?? 0);
-        $c->remaining  = $c->total_debt - $c->total_paid;
-        $c->last_transaction_date = collect([$c->last_debt_date, $c->last_payment_date])
-            ->filter()
-            ->max();
+    $clients = Client::where('user_id', $userId)
 
-        // خبّي العلاقات
-      return $c->makeHidden(['debts','payments','user_id','created_at','updated_at']);
-    });
+        ->withMax('debts as last_debt_date', 'debt_date')
+        ->withMax('payments as last_payment_date', 'payment_date')
+->withMin('debts as first_debt_date', 'debt_date') ->get()
+        ->map(function ($c) {
+            $c->total_debt = (float) ($c->total_debt ?? 0);
+            $c->total_paid = (float) ($c->total_paid ?? 0);
+            $c->remaining  = $c->total_debt - $c->total_paid;
 
-    return response_data($clients, __('messages.get_clients'));
+            $c->last_transaction_date = collect([
+                    $c->last_debt_date,
+                    $c->last_payment_date
+                ])->filter()->max();
+
+            // خبّي العلاقات والحقول غير اللازمة
+            return $c->makeHidden(['debts','payments','user_id','created_at','updated_at','amount']);
+        }) ;
+     // الشرط المطلوب حسب category
+if ($cat === 'debt') {
+    // اللي عليهم ديون (remaining > 0)
+    $clients = $clients->filter(fn ($c) => ($c->remaining ?? 0) > 0)->values();
+
+} else if ($cat === 'late') {
+$cutoff = \Carbon\Carbon::now()->subDays(30)->startOfDay();
+    $clients = $clients->filter(function ($c) use ($cutoff) {
+        $remaining = (float) ($c->remaining ?? 0);
+        if ($remaining <= 0) {
+            return false; // ما عليه دين ⇒ مو متأخر
+        }
+
+      $lastPay   = $c->last_payment_date ? \Carbon\Carbon::parse($c->last_payment_date) : null;
+        $firstDebt = $c->first_debt_date   ? \Carbon\Carbon::parse($c->first_debt_date)   : null;
+
+        if ($lastPay) {
+            // عنده دفعات: اعتبره متأخر إذا آخر دفعة أقدم من العتبة
+            return $lastPay->lt($cutoff);
+        }
+
+        // ما عنده ولا دفعة: اعتمد أول تاريخ دين
+        return $firstDebt && $firstDebt->lt($cutoff);
+    })->values();} else if ($cat === 'clear') {
+    // المسدّدين تماماً (remaining == 0)
+    $clients = $clients->filter(fn ($c) => ($c->remaining ?? 0) == 0)->values();
+
+} else if ($cat === 'all') {
+    // الكل بدون فلترة
+    // لا شيء: اترك $clients كما هي
+
+} else {
+    // أي قيمة غير معروفة
+    $clients = collect(); // لو بدكها Array عادي: $clients = [];
 }
+
+
+    // ترتيب اختياري حسب آخر حركة (الأحدث أولاً)
+    $clients = $clients->sortByDesc('last_transaction_date')->values();
+    return response_data($clients, 'قائمة العملاء حسب التصنيف: ' . $cat);
+}
+
     public function store(Request $request)
     {
         $data = Client::create([
@@ -77,6 +117,8 @@ public function search(Request $request)
     public function show(string $id)
     {
         $client = Client::find($id);
+        $remaining = $client->total_debt - $client->total_paid;
+        $client->remaining = $remaining;
         return response_data($client, 'بيانات العميل رقم: ' . $id);
     }
 

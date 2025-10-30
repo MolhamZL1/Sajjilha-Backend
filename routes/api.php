@@ -40,7 +40,7 @@ Route::group([
 
 
 Route::group(['prefix'=>'client','middleware'=>'auth:api'],function (){
-    Route::get('index',[ClientController::class,'index']);
+    Route::get('index/{category}',[ClientController::class,'index']);
     Route::post('store',[ClientController::class,'store']);
     Route::get('show/{id}',[ClientController::class,'show']);
     Route::put('update/{id}',[ClientController::class,'update']);
@@ -71,7 +71,7 @@ Route::group(['prefix' => 'payments', 'middleware' => 'auth:api'], function () {
 Route::group(['middleware' => 'auth:api'], function() {
     Route::get('clients/{id}/statement', [StatementController::class, 'show']);//كشف حساب زبون
     Route::get('clients/transactions/{id}', [StatementController::class, 'merged'])->middleware('auth:api');//حركات الزبون حسب التاريخ
-    Route::get('transactions/all', [StatementController::class, 'allTransactions'])->middleware('auth:api');//كل العملاء حسب التاريخ مع فلترة
+    Route::get('transactions/{category}', [StatementController::class, 'allTransactions'])->middleware('auth:api');//كل العملاء حسب التاريخ مع فلترة
 
 });
 

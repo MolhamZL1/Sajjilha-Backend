@@ -55,10 +55,9 @@ class StatementController extends Controller
 
 
 
-    public function allTransactions(Request $request)
+    public function allTransactions(Request $request,string $category)
     {
         $search = $request->input('search');
-        $type = $request->input('type'); // debt or payment
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -96,9 +95,9 @@ class StatementController extends Controller
         $merged = $debts->merge($payments);
 
         // فلترة النوع اذا طلب المستخدم
-        if ($type == 'debt') {
+        if ($category == 'debt') {
             $merged = $merged->where('type', 'debt');
-        } elseif ($type == 'payment') {
+        } elseif ($category == 'payment') {
             $merged = $merged->where('type', 'payment');
         }
 
