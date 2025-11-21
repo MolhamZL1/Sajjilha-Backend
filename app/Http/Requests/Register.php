@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use function Spatie\FlareClient\__construct;
+use Illuminate\Validation\Rule;
 
 class Register extends FormRequest
 {
@@ -24,8 +24,17 @@ class Register extends FormRequest
     {
         return [
             'name'=>'required|string|max:190',
-            'email'=>'required|email|unique:users,email',
-            'mobile' => 'required|regex:/^09[0-9]{8}$/|unique:users,mobile',
+             'email'  => [
+            'required',
+            'email',
+            Rule::unique('users', 'email')->whereNotNull('email_verified_at'),
+        ],
+
+        'mobile' => [
+            'required',
+            'regex:/^09[0-9]{8}$/',
+            Rule::unique('users', 'mobile')->whereNotNull('email_verified_at'),
+        ],
             'password'=>'required|min:6|max:10|confirmed'
         ];
     }

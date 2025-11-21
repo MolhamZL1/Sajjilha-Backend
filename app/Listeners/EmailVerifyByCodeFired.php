@@ -24,7 +24,7 @@ class EmailVerifyByCodeFired
      */
     public function handle(EmailVerifyByCode $event): void
     {
-//        dd($event);
-Mail::to($event->user->email)->send(new sendActiveCode(__('main.activeAccount',['type'=>__('main.email')]),__('main.msg_code_email',['code'=>$event->user->email_code,'name'=>$event->user->name])));
+        //dd($event);
+        Mail::to($event->user->email)->send(new sendActiveCode(__('main.activeAccount', ['type' => __('main.email')]), __('main.msg_code_email', ['code' => $event->user->email_code, 'name' => $event->user->name])));
     }
 }

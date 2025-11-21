@@ -29,6 +29,9 @@ class User extends Authenticatable implements JWTSubject
         'email_verified_at',
         'mobile_verified_at',
         'mobile',
+        'password_reset_code',
+        'password_reset_code_expires_at',
+        'password_reset_verified_at',
     ];
 
     /**
@@ -48,6 +51,9 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'mobile_verified_at' => 'datetime',
+        'password_reset_code_expires_at' => 'datetime',
+        'password_reset_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
 

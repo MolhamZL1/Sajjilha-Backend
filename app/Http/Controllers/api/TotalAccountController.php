@@ -45,7 +45,7 @@ class TotalAccountController extends Controller
         // آخر الديون والتسديدات للمستخدم الحالي
         $debts = Debt::whereHas('client', function($query) use ($userId) {
             $query->where('user_id', $userId);
-        })->with('client')->select(['id', 'client_id', 'amount'])
+        })->with('client')->select(['id', 'client_id', 'amount','description'])
             ->addSelect(['date' => function ($query) {
                 $query->selectRaw('DATE(debt_date) as date');
             }])
@@ -55,7 +55,7 @@ class TotalAccountController extends Controller
 
         $payments = Payment::whereHas('client', function($query) use ($userId) {
             $query->where('user_id', $userId);
-        })->with('client')->select(['id', 'client_id', 'amount'])
+        })->with('client')->select(['id', 'client_id', 'amount', 'notes as description'])
             ->addSelect(['date' => function ($query) {
                 $query->selectRaw('DATE(payment_date) as date');
             }])

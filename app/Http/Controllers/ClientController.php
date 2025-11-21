@@ -83,9 +83,10 @@ $cutoff = \Carbon\Carbon::now()->subDays(30)->startOfDay();
 
         // ما عنده ولا دفعة: اعتمد أول تاريخ دين
         return $firstDebt && $firstDebt->lt($cutoff);
-    })->values();} else if ($cat === 'clear') {
+    })->values();}
+     else if ($cat === 'clear') {
     // المسدّدين تماماً (remaining == 0)
-    $clients = $clients->filter(fn ($c) => ($c->remaining ?? 0) == 0)->values();
+    $clients = $clients->filter(fn ($c) => ($c->remaining ?? 0) <= 0)->values();
 
 } else if ($cat === 'all') {
     // الكل بدون فلترة

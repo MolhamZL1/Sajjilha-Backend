@@ -22,7 +22,7 @@ class StatementController extends Controller
             'client' => [
                 'id' => $client->id,
                 'name' => $client->name,
-                'phone' => $client->phone,
+
             ],
             'total_debt' => $total_debt,
             'total_paid' => $total_paid,
@@ -37,17 +37,20 @@ class StatementController extends Controller
 
    public function merged($client_id)
 {
-    $debts = \App\Models\Debt::where('client_id', $client_id)
-        ->select('id', 'debt_date', 'amount', 'description', DB::raw("'debt' as type"))
+    $debts = Debt::where('client_id', $client_id)
+        ->select('id', 'debt_date', 'amount', 'description', DB::raw("'debt' as type"),'created_at')
         ->get();
 
-    $payments = \App\Models\Payment::where('client_id', $client_id)
-        ->select('id', 'payment_date', 'amount', 'notes', DB::raw("'payment' as type"))
+    $payments = Payment::where('client_id', $client_id)
+        ->select('id', 'payment_date', 'amount', 'notes', DB::raw("'payment' as type"),'created_at')
         ->get();
 
-    $merged = $debts->merge($payments)->sortByDesc(function ($item) {
-        return $item->debt_date ?? $item->payment_date;
-    })->values();
+    $merged = $debts
+        ->concat($payments) // بدل merge
+        ->sortByDesc(function ($item) {
+            return $item->created_at;
+        })
+        ->values(); // لإعادة ترتيب الإندكسات من 0..n
 
     return response_data($merged, 'حركات العميل حسب التاريخ');
 }
@@ -62,10 +65,10 @@ class StatementController extends Controller
         $toDate = $request->input('to_date');
 
         $debts = Debt::with('client')
-            ->select('id', 'client_id', 'debt_date as date', 'amount', 'description', DB::raw("'debt' as type"));
+            ->select('id', 'client_id', 'debt_date as date', 'amount', 'description', DB::raw("'debt' as type"),'created_at');
 
         $payments = Payment::with('client')
-            ->select('id', 'client_id', 'payment_date as date', 'amount', 'notes as description', DB::raw("'payment' as type"));
+            ->select('id', 'client_id', 'payment_date as date', 'amount', 'notes as description', DB::raw("'payment' as type",),'created_at');
 
         if ($search) {
             $debts->whereHas('client', function ($q) use ($search) {
@@ -92,7 +95,7 @@ class StatementController extends Controller
         $payments = $payments->get();
 
         // ندمجهم مع بعض
-        $merged = $debts->merge($payments);
+        $merged = $debts->concat($payments);
 
         // فلترة النوع اذا طلب المستخدم
         if ($category == 'debt') {
@@ -102,7 +105,7 @@ class StatementController extends Controller
         }
 
         // نرتب حسب التاريخ الأحدث دائما
-        $merged = $merged->sortByDesc('date')->values();
+        $merged = $merged->sortByDesc('created_at')->values();
 
         return response_data($merged, 'كل الحركات بعد الفلاتر');
     }

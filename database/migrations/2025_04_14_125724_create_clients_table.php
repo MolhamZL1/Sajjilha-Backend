@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
-            $table->string('phone');
+            $table->string('phone')->nullable();
             $table->string('name');
-            $table->string('address');
+            $table->string('address')->nullable();
             $table->decimal('amount', 20, 2)->nullable();
             $table->boolean('is_favorite')->default(false);
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();

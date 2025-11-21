@@ -57,7 +57,7 @@ class DebtController extends Controller
     {
         $data = $request->validate([
             'client_id' => 'required|exists:clients,id',
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'amount' => 'required|numeric|min:0',
         ]);
 
@@ -66,16 +66,16 @@ class DebtController extends Controller
         $debt = Debt::create($data);
 
 // التحقق من تجاوز حد المديونية
-        $total_debt = Debt::where('client_id', $data['client_id'])->sum('amount');
-        $debt_limit = 5000; // حد الدين مثلا 5000
+        // $total_debt = Debt::where('client_id', $data['client_id'])->sum('amount');
+        // $debt_limit = 5000; // حد الدين مثلا 5000
 
-        if ($total_debt > $debt_limit) {
-            \App\Models\Notification::create([
-                'title' => 'تجاوز حد المديونية',
-                'body' => "الزبون رقم {$data['client_id']} تجاوز حد المديونية. المجموع: {$total_debt}",
-                'client_id' => $data['client_id'],
-            ]);
-        }
+        // if ($total_debt > $debt_limit) {
+        //     \App\Models\Notification::create([
+        //         'title' => 'تجاوز حد المديونية',
+        //         'body' => "الزبون رقم {$data['client_id']} تجاوز حد المديونية. المجموع: {$total_debt}",
+        //         'client_id' => $data['client_id'],
+        //     ]);
+        // }
 
 
         return response_data($debt, __('messages.debt_added'));
@@ -104,7 +104,7 @@ class DebtController extends Controller
 public function byClient($client_id)
 {
     $debts = Debt::where('client_id', $client_id)
-        ->orderBy('debt_date', 'desc')
+        ->orderBy('created_at', 'desc')
         ->get();
 
     return response_data($debts, __('messages.get_debts'));

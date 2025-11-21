@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('debts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-            $table->string('description');
+            $table->string('description')->nullable();
             $table->date('debt_date');
             $table->decimal('amount', 20, 2);
             $table->timestamps();

@@ -65,7 +65,7 @@ class PaymentController extends Controller
     public function byClient($client_id)
     {
         $payments = Payment::where('client_id', $client_id)
-        ->orderBy('payment_date', 'desc')
+        ->orderBy('created_at', 'desc')
         ->get();
         return response_data($payments, __('messages.payment_listed'));
     }
