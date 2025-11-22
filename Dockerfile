@@ -1,29 +1,31 @@
-# syntax=docker/dockerfile:1
+# صورة PHP رسمية
+FROM php:8.2-cli
 
-FROM webdevops/php-nginx:8.2-alpine
+# تثبيت اكستنشن MySQL للـ PDO
+RUN docker-php-ext-install pdo_mysql
 
-ENV WEB_DOCUMENT_ROOT=/var/www/html/public \
-    APP_ENV=production \
-    APP_DEBUG=0
+# تثبيت Composer من صورة جاهزة
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-RUN apk add --no-cache git curl zip unzip bash icu-dev libzip-dev oniguruma-dev \
-    && docker-php-ext-install pdo pdo_mysql \
-    && rm -rf /var/cache/apk/*
-
+# مجلد العمل داخل الكونتينر
 WORKDIR /var/www/html
 
-COPY . /var/www/html
+# نسخ كل ملفات المشروع للداخل
+COPY . .
 
-RUN set -ex \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-    && composer install --no-dev --prefer-dist --optimize-autoloader \
-    && if [ ! -f .env ]; then cp .env.example .env || true; fi \
-    && php artisan storage:link || true \
-    && chown -R application:application storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+# تثبيت باكجات Laravel
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-RUN mkdir -p /opt/docker/provision/entrypoint.d
-COPY docker/10-laravel-boot.sh /opt/docker/provision/entrypoint.d/10-laravel-boot.sh
-RUN chmod +x /opt/docker/provision/entrypoint.d/*.sh
+# التأكد إن مجلدات التخزين قابلة للكتابة
+RUN mkdir -p storage bootstrap/cache \
+    && chmod -R 777 storage bootstrap/cache
 
-EXPOSE 80
+# نسخ سكربت التشغيل
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# البورت اللي راح نسمع عليه
+EXPOSE 8000
+
+# الأمر النهائي عند تشغيل الكونتينر
+CMD ["/entrypoint.sh"]
