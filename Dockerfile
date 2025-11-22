@@ -1,8 +1,9 @@
 # صورة PHP رسمية
 FROM php:8.2-cli
 
-# تثبيت اكستنشن MySQL للـ PDO
-RUN docker-php-ext-install pdo_mysql
+# تثبيت الإضافات اللي يحتاجها Laravel
+RUN docker-php-ext-install pdo_mysql bcmath
+
 
 # تثبيت Composer من صورة جاهزة
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
