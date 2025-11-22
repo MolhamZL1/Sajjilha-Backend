@@ -1,8 +1,14 @@
-# صورة PHP رسمية
+
 FROM php:8.2-cli
 
-# تثبيت الإضافات اللي يحتاجها Laravel
-RUN docker-php-ext-install pdo_mysql bcmath
+# تثبيت باكجات النظام المطلوبة + إضافات PHP
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    libzip-dev \
+    && docker-php-ext-install pdo_mysql bcmath zip \
+    && rm -rf /var/lib/apt/lists/*
+
 
 
 # تثبيت Composer من صورة جاهزة
