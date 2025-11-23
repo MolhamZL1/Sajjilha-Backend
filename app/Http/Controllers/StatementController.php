@@ -56,59 +56,86 @@ class StatementController extends Controller
 }
 
 
+public function allTransactions(Request $request, string $category)
+{
+    $search   = $request->input('search');
+    $fromDate = $request->input('from_date');
+    $toDate   = $request->input('to_date');
 
+    $userId = auth()->id();
 
-    public function allTransactions(Request $request,string $category)
-    {
-        $search = $request->input('search');
-        $fromDate = $request->input('from_date');
-        $toDate = $request->input('to_date');
+    // الديون
+    $debts = Debt::with('client')
+        ->whereHas('client', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })
+        ->select(
+            'id',
+            'client_id',
+            'debt_date as date',
+            'amount',
+            'description',
+            DB::raw("'debt' as type"),
+            'created_at'
+        );
 
-        $debts = Debt::with('client')
-            ->select('id', 'client_id', 'debt_date as date', 'amount', 'description', DB::raw("'debt' as type"),'created_at');
+    // الدفعات
+    $payments = Payment::with('client')
+        ->whereHas('client', function ($q) use ($userId) {
+            $q->where('user_id', $userId);
+        })
+        ->select(
+            'id',
+            'client_id',
+            'payment_date as date',
+            'amount',
+            'notes as description',
+            DB::raw("'payment' as type"),
+            'created_at'
+        );
 
-        $payments = Payment::with('client')
-            ->select('id', 'client_id', 'payment_date as date', 'amount', 'notes as description', DB::raw("'payment' as type",),'created_at');
+    // فلترة بالاسم
+    if (!empty($search)) {
+        $debts->whereHas('client', function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%");
+        });
 
-        if ($search) {
-            $debts->whereHas('client', function ($q) use ($search) {
-                $q->where('name', 'like', "%$search%");
-            });
-
-            $payments->whereHas('client', function ($q) use ($search) {
-                $q->where('name', 'like', "%$search%");
-            });
-        }
-
-        if ($fromDate) {
-            $debts->where('debt_date', '>=', $fromDate);
-            $payments->where('payment_date', '>=', $fromDate);
-        }
-
-        if ($toDate) {
-            $debts->where('debt_date', '<=', $toDate);
-            $payments->where('payment_date', '<=', $toDate);
-        }
-
-        // نجلب البيانات
-        $debts = $debts->get();
-        $payments = $payments->get();
-
-        // ندمجهم مع بعض
-        $merged = $debts->concat($payments);
-
-        // فلترة النوع اذا طلب المستخدم
-        if ($category == 'debt') {
-            $merged = $merged->where('type', 'debt');
-        } elseif ($category == 'payment') {
-            $merged = $merged->where('type', 'payment');
-        }
-
-        // نرتب حسب التاريخ الأحدث دائما
-        $merged = $merged->sortByDesc('created_at')->values();
-
-        return response_data($merged, 'كل الحركات بعد الفلاتر');
+        $payments->whereHas('client', function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%");
+        });
     }
+
+    // فلترة من تاريخ
+    if (!empty($fromDate)) {
+        $debts->where('debt_date', '>=', $fromDate);
+        $payments->where('payment_date', '>=', $fromDate);
+    }
+
+    // فلترة إلى تاريخ
+    if (!empty($toDate)) {
+        $debts->where('debt_date', '<=', $toDate);
+        $payments->where('payment_date', '<=', $toDate);
+    }
+
+    // نجلب البيانات
+    $debts    = $debts->get();
+    $payments = $payments->get();
+
+    // ندمجهم مع بعض
+    $merged = $debts->concat($payments);
+
+    // فلترة النوع إذا طلب المستخدم
+    if ($category === 'debt') {
+        $merged = $merged->where('type', 'debt');
+    } elseif ($category === 'payment') {
+        $merged = $merged->where('type', 'payment');
+    }
+
+    // نرتب حسب الأحدث
+    $merged = $merged->sortByDesc('created_at')->values();
+
+    return response_data($merged, 'كل الحركات بعد الفلاتر');
+}
 
 
 }

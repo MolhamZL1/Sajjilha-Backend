@@ -18,7 +18,7 @@ class Client extends Model
     public function debts()
     {
         return $this->hasMany(Debt::class);
-    }
+    }client
 
     public function payments()
     {
