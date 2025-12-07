@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Client;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+
 
 class ClientController extends Controller
 {
@@ -102,18 +104,48 @@ $cutoff = \Carbon\Carbon::now()->subDays(30)->startOfDay();
     $clients = $clients->sortByDesc('last_transaction_date')->values();
     return response_data($clients, 'قائمة العملاء حسب التصنيف: ' . $cat);
 }
+public function store(Request $request)
+{
+    $rules = [
+        'name' => [
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('clients')->where(function ($q) {
+                return $q->where('user_id', auth()->id());
+            }),
+        ],
+        'address' => 'nullable|string|max:255',
+    ];
 
-    public function store(Request $request)
-    {
-        $data = Client::create([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'user_id' => auth()->id(),
-        ]);
-
-        return response_data($data, __('messages.client_created'));
+    // لو فيه رقم، تأكّد إنه unique لنفس المستخدم
+    if ($request->filled('phone')) {
+        $rules['phone'] = [
+            'string',
+            'max:50',
+            Rule::unique('clients')->where(function ($q) {
+                return $q->where('user_id', auth()->id());
+            }),
+        ];
+    } else {
+        $rules['phone'] = 'nullable|string|max:50';
     }
+
+    $request->validate($rules, [
+        'name.unique'  => 'هذا الاسم مستخدم مسبقاً عندك في قائمة العملاء.',
+        'phone.unique' => 'هذا الرقم مستخدم مسبقاً عندك في قائمة العملاء.',
+    ]);
+
+    $data = Client::create([
+        'name'    => $request->name,
+        'phone'   => $request->phone,
+        'address' => $request->address,
+        'user_id' => auth()->id(),
+    ]);
+
+    return response_data($data, __('messages.client_created'));
+}
+
 
     public function show(string $id)
     {
@@ -122,20 +154,54 @@ $cutoff = \Carbon\Carbon::now()->subDays(30)->startOfDay();
         $client->remaining = $remaining;
         return response_data($client, 'بيانات العميل رقم: ' . $id);
     }
+public function update(Request $request, string $id)
+{
+    // تأكد أن العميل تابع لليوزر الحالي
+    $client = Client::where('user_id', auth()->id())->findOrFail($id);
 
-    public function update(Request $request, string $id)
-    {
-        $client = Client::find($id);
+    $rules = [
+        'name' => [
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('clients')
+                ->ignore($client->id)
+                ->where(function ($q) {
+                    return $q->where('user_id', auth()->id());
+                }),
+        ],
+        'address' => 'nullable|string|max:255',
+    ];
 
-        $client->update([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'user_id' => auth()->id(),
-        ]);
-
-        return response_data($client, __('messages.client_updated'));
+    if ($request->filled('phone')) {
+        $rules['phone'] = [
+            'string',
+            'max:50',
+            Rule::unique('clients')
+                ->ignore($client->id)
+                ->where(function ($q) {
+                    return $q->where('user_id', auth()->id());
+                }),
+        ];
+    } else {
+        $rules['phone'] = 'nullable|string|max:50';
     }
+
+    $request->validate($rules, [
+        'name.unique'  => 'هذا الاسم مستخدم مسبقاً عندك في قائمة العملاء.',
+        'phone.unique' => 'هذا الرقم مستخدم مسبقاً عندك في قائمة العملاء.',
+    ]);
+
+    $client->update([
+        'name'    => $request->name,
+        'phone'   => $request->phone,
+        'address' => $request->address,
+        'user_id' => auth()->id(),
+    ]);
+
+    return response_data($client, __('messages.client_updated'));
+}
+
 
     public function destroy($id)
     {
