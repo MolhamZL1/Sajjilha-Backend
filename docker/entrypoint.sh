@@ -1,8 +1,14 @@
 #!/bin/sh
 set -e
 
-# نعمل migrate كل مرة يشتغل الكونتينر (لو مافي تغييرات ما بيعمل شي)
+# clear cached config (مهم لما تغيّر DB / ENV)
+php artisan config:clear || true
+php artisan cache:clear || true
+php artisan route:clear || true
+php artisan view:clear || true
+
+# migrate (لا تخبي الأخطاء نهائياً)
 php artisan migrate --force || true
 
-# نشغل السيرفر تبع Laravel
-php artisan serve --host=0.0.0.0 --port=8000
+# start apache in foreground
+apache2-foreground

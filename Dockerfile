@@ -1,38 +1,34 @@
+FROM php:8.2-apache
 
-FROM php:8.2-cli
-
-# تثبيت باكجات النظام المطلوبة + إضافات PHP
+# System deps + PHP extensions
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    libzip-dev \
+    git unzip libzip-dev \
     && docker-php-ext-install pdo_mysql bcmath zip \
+    && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
-
-
-# تثبيت Composer من صورة جاهزة
+# Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# مجلد العمل داخل الكونتينر
 WORKDIR /var/www/html
 
-# نسخ كل ملفات المشروع للداخل
+# Copy project
 COPY . .
 
-# تثبيت باكجات Laravel
+# Laravel: install deps
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# التأكد إن مجلدات التخزين قابلة للكتابة
+# Apache: set document root to /public
+RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf || true
+
+# Permissions (مش مثالي أمنياً بس ضمن وضعك)
 RUN mkdir -p storage bootstrap/cache \
     && chmod -R 777 storage bootstrap/cache
 
-# نسخ سكربت التشغيل
+# Entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# البورت اللي راح نسمع عليه
-EXPOSE 8000
-
-# الأمر النهائي عند تشغيل الكونتينر
+EXPOSE 80
 CMD ["/entrypoint.sh"]
