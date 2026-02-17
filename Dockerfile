@@ -15,16 +15,12 @@ WORKDIR /var/www/html
 # Copy project
 COPY . .
 
-# Laravel: install deps
+# Install Laravel deps
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Apache: set document root to /public
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
-    && sed -i 's|/var/www/|/var/www/html/public|g' /etc/apache2/apache2.conf || true
-
-# Permissions (مش مثالي أمنياً بس ضمن وضعك)
-RUN mkdir -p storage bootstrap/cache \
-    && chmod -R 777 storage bootstrap/cache
+# Apache: document root -> /public
+RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|g' /etc/apache2/sites-available/000-default.conf \
+    && printf "\n<Directory /var/www/html/public>\nAllowOverride All\nRequire all granted\n</Directory>\n" >> /etc/apache2/apache2.conf
 
 # Entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
