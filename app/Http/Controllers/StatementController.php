@@ -37,6 +37,9 @@ class StatementController extends Controller
 
    public function merged($client_id)
 {
+    $page  = max(1, (int) request()->input('page', 1));
+    $limit = 10;
+
     $debts = Debt::where('client_id', $client_id)
         ->select('id', 'debt_date', 'amount', 'description', DB::raw("'debt' as type"),'created_at')
         ->get();
@@ -50,6 +53,7 @@ class StatementController extends Controller
         ->sortByDesc(function ($item) {
             return $item->created_at;
         })
+        ->forPage($page, $limit)
         ->values(); // لإعادة ترتيب الإندكسات من 0..n
 
     return response_data($merged, 'حركات العميل حسب التاريخ');
@@ -61,6 +65,8 @@ public function allTransactions(Request $request, string $category)
     $search   = $request->input('search');
     $fromDate = $request->input('from_date');
     $toDate   = $request->input('to_date');
+    $page     = max(1, (int) $request->input('page', 1));
+    $limit    = 10;
 
     $userId = auth()->id();
 
@@ -131,8 +137,12 @@ public function allTransactions(Request $request, string $category)
         $merged = $merged->where('type', 'payment');
     }
 
-    // نرتب حسب الأحدث
-    $merged = $merged->sortByDesc('created_at')->values();
+    // نرتب حسب الأحدث + تقسيم صفحات
+    $merged = $merged
+        ->sortByDesc('created_at')
+        ->values()
+        ->forPage($page, $limit)
+        ->values();
 
     return response_data($merged, 'كل الحركات بعد الفلاتر');
 }

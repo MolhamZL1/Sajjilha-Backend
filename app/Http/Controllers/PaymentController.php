@@ -62,11 +62,11 @@ class PaymentController extends Controller
         return response_data($payments, __('messages.payment_listed'));
     }
 
-    public function byClient($client_id)
+    public function byClient(Request $request, $client_id)
     {
         $payments = Payment::where('client_id', $client_id)
         ->orderBy('created_at', 'desc')
-        ->get();
+        ->paginate(10);
         return response_data($payments, __('messages.payment_listed'));
     }
 }

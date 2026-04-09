@@ -101,11 +101,11 @@ class DebtController extends Controller
 
         return response_data([], __('messages.debt_deleted'));
     }
-public function byClient($client_id)
+public function byClient(Request $request, $client_id)
 {
     $debts = Debt::where('client_id', $client_id)
         ->orderBy('created_at', 'desc')
-        ->get();
+        ->paginate(10);
 
     return response_data($debts, __('messages.get_debts'));
 }
