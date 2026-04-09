@@ -43,6 +43,8 @@ public function index(string $category)
 {
     $userId = auth()->id();
     $cat = strtolower($category);
+    $page = max(1, (int) request()->query('page', 1));
+    $limit = 10;
 
     $clients = Client::where('user_id', $userId)
 
@@ -101,7 +103,11 @@ $cutoff = \Carbon\Carbon::now()->subDays(30)->startOfDay();
 
 
     // ترتيب اختياري حسب آخر حركة (الأحدث أولاً)
-    $clients = $clients->sortByDesc('last_transaction_date')->values();
+    $clients = $clients
+        ->sortByDesc('last_transaction_date')
+        ->values()
+        ->forPage($page, $limit)
+        ->values();
     return response_data($clients, 'قائمة العملاء حسب التصنيف: ' . $cat);
 }
 public function store(Request $request)
